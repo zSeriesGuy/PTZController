@@ -1,0 +1,123 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <style>
+        body {
+            background-color: #1d1d1d;
+        }
+
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .preset_button {
+            display: inline-flex;
+            justify-content: center;
+            width: 85px;
+            height: 38px;
+            margin: 1px;
+            padding: 0;
+            font-size: 14px;
+            color: #999999;
+            text-transform: uppercase;
+            line-height: 40px;
+            text-align: center;
+            text-decoration: none;
+            background: #333333;
+        }
+
+        .preset_button:hover,
+        .preset_button:active,
+        .preset_button.active {
+                font-size: 14px;
+                color: #7ec9ed;
+                font-weight: bold;
+                text-decoration: none;
+                background: #282828;
+                outline: -webkit-focus-ring-color auto 1px;
+        }
+
+        .reload-presets {
+            float: right;
+        }
+
+        .reload-presets i {
+            color: white;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="reload-presets" data-toggle="tooltip" title="Reload Presets"><i class="fas fa-sync"></i></div>
+    <div id="presets" class="presets">
+        <button type="button" class="preset_button" data-preset="1">1</button>
+        <button type="button" class="preset_button" data-preset="2">2</button>
+        <button type="button" class="preset_button" data-preset="3">3</button>
+        <button type="button" class="preset_button" data-preset="4">4</button>
+        <button type="button" class="preset_button" data-preset="5">5</button>
+        <button type="button" class="preset_button" data-preset="6">6</button>
+        <button type="button" class="preset_button" data-preset="7">7</button>
+        <button type="button" class="preset_button" data-preset="8">8</button>
+        <button type="button" class="preset_button" data-preset="9">9</button>
+    </div>
+<div class="presets_container">
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+<script>
+var baseURL = "";
+
+function get_presets () {
+	$.ajax({
+		url: baseURL + '/control/get_presets',
+		data: {'camera': 1},
+		type: 'GET',
+		complete: function(data) {
+		    if (data.responseJSON) {
+                var html = "";
+                data.responseJSON.forEach(function(preset) {
+                    html += '<button type="button" class="preset_button" data-preset=' + preset['num'] + '>' + preset['name'] + '</button>';
+                });
+                $("#presets").html(html);
+		    }
+		}
+	})
+}
+get_presets();
+
+$('body').on('click', '.preset_button', function(e) {
+	e.preventDefault();
+	var preset = $(this).data('preset');
+	$.ajax({
+		url: baseURL + "/control/gotoPreset",
+		data: {
+		    'camera': 1,
+		    'preset': preset,
+		},
+		type: 'GET'
+	});
+	$('.preset_button').removeClass("active");
+	$(this).addClass("active");
+	return false;
+});
+
+$('body').on('click', '.reload-presets', function(e) {
+	e.preventDefault();
+	get_presets();
+	return false;
+});
+
+</script>
+</body>
+</html>

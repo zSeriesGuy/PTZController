@@ -1,0 +1,54 @@
+﻿<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" href="${http_root}css/ptzcontroller.css${cache_param}">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    ${next.headIncludes()}
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="${http_root}images/favicon/favicon-32x32.png?v=2.0.5">
+    <link rel="icon" type="image/png" sizes="16x16" href="${http_root}images/favicon/favicon-16x16.png?v=2.0.5">
+    <link rel="shortcut icon" href="${http_root}images/favicon/favicon.ico?v=2.0.5">
+
+    <!-- ICONS -->
+    <!-- Android -->
+    <link rel="manifest" href="${http_root}images/favicon/manifest.json?v=2.0.5">
+    <meta name="theme-color" content="#282a2d">
+    <!-- Apple -->
+    <link rel="apple-touch-icon" sizes="180x180" href="${http_root}images/favicon/apple-touch-icon.png?v=2.0.5">
+    <link rel="mask-icon" href="${http_root}images/favicon/safari-pinned-tab.svg?v=2.0.5" color="#282a2d">
+    <meta name="apple-mobile-web-app-title" content="ptzcontroller">
+    <!-- Microsoft -->
+    <meta name="application-name" content="ptzcontroller">
+    <meta name="msapplication-config" content="${http_root}images/favicon/browserconfig.xml?v=2.0.5">
+</head>
+
+<body>
+
+${next.headerIncludes()}
+
+${next.body()}
+
+${next.modalIncludes()}
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+
+${next.javascriptIncludes()}
+</body>
+</html>
+
+<%def name="modalIncludes()"></%def>
+<%def name="javascriptIncludes()"></%def>
+<%def name="headIncludes()"></%def>
+<%def name="headerIncludes()"></%def>

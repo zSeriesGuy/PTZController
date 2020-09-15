@@ -1,0 +1,659 @@
+<%inherit file="base.html"/>
+
+<%def name="body()">
+<div class="container">
+
+    <div class="camera-selector">
+        <div class="row">
+            <div class="col">
+                % for camera in cameras:
+                <button type="button" class="camera-button ${'connected ' if camera.isconnected else ''}" data-camera_id="${camera.id}">${camera.name}</button>
+                % endfor
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="row">
+            <div class="col-sm controls-container">
+                <div class="row">
+                    <div class="col">
+                        <div class="pantilt_controls">
+                            <div class="row">
+                                <div class="pantilt_image pantilt-blank"></div>
+                                <div id="pantilt-button-left" class="pantilt-left pantilt_image adjust_pantilt" data-action="left"><i class="fas fa-chevron-left fa-2x"></i></div>
+                                <div class="pantilt_image pantilt-blank"></div>
+                            </div>
+                            <div class="row">
+                                <div id="pantilt-button-up" class="pantilt-up pantilt_image adjust_pantilt" data-action="up"><i class="fas fa-chevron-up fa-2x"></i></div>
+                                <div id="pantilt-button-home" class="pantilt-home pantilt_image adjust_pantilt" data-action="home"><i class="fas fa-home fa-2x"></i></div>
+                                <div id="pantilt-button-down" class="pantilt-down pantilt_image adjust_pantilt" data-action="down"><i class="fas fa-chevron-down fa-2x"></i></div>
+                            </div>
+                            <div class="row">
+                                <div class="pantilt_image pantilt-blank"></div>
+                                <div id="pantilt-button-right" class="pantilt-right pantilt_image adjust_pantilt" data-action="right"><i class="fas fa-chevron-right fa-2x"></i></div>
+                                <div class="pantilt_image pantilt-blank"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="zoom_controls">
+                            <div class="rocker">
+                                <div class="row">
+                                    <div class="toggle_button toggle-up toggle-zoom-in adjust_zoom" data-action="zoomin">
+                                        <i class="fas fa-plus fa-1x"></i>
+                                        <div class="toggle-zoom-in"></div>
+                                    </div>
+
+                                </div>
+                                <div class="row">
+                                    <div class="toggle_button toggle-down toggle-zoom-out adjust_zoom" data-action="zoomout"><i class="fas fa-minus fa-1x"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="focus_controls">
+                            <div class="rocker">
+                                <div class="row">
+                                    <div class="toggle_button toggle-up toggle-focus-in adjust_focus" data-action="focusin"><i class="fas fa-circle fa-xs"></i></div>
+                                </div>
+                                <div class="row">
+                                    <div class="toggle_button toggle-down toggle-focus-out adjust_focus" data-action="focusout"><i class="far fa-circle fa-1x"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="slidecontainer">
+                        <input type="range" min="1" max="10" value="5" class="slider" id="pantiltSpeed">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm presets-container">
+                <div class="row">
+                    <div class="col presets_title">
+                        <span class="edit-presets" data-toggle="tooltip" title="Edit Presets"><i class="fas fa-cog"></i></span>
+                        <span>Presets</span>
+                        <span class="reload-presets" data-toggle="tooltip" title="Reload Presets"><i class="fas fa-sync"></i></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col presetSelector" id="presetSelector">
+                        <label for="addPresetSelector">Add Preset:</label>
+                        <select name="addPresetSelector" id="addPresetSelector">
+                        </select>
+                        <a class="add-preset" href="#" data-toggle="tooltip" title="Add this preset"><i class="fas fa-plus fa-lg"></i></a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="presets" class="presets">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div id="ptzJoystickDiv" style="width:300px;height:300px; margin: 40px;"></div>
+        </div>
+    </div>
+
+</div>
+</%def>
+
+
+<%def name="javascriptIncludes()">
+<script src="${http_root}js/mousetrap.min.js" type="text/javascript"></script>
+<script src="${http_root}js/eventsource.min.js" type="text/javascript"></script>
+<script src="${http_root}js/joy.js${cache_param}" type="text/javascript"></script>
+<script>
+var editPresets = false;
+
+// config defaults
+var pantiltSpeed = 5;
+var panRange = 10;
+var tiltRange = 10;
+var zoomRange = 8;
+var zoomSpeed = 5;
+var focusSpeed = 3;
+var focusRange = 8;
+
+var defaults = {
+    flip: 0,
+    mirror: 0,
+    invertcontrols: 0,
+    infinitypt: 0,
+    infinityzoom: 0,
+    infinityfocus: 0,
+};
+var config = defaults;
+
+// Create JoyStick object into the DIV 'ptzJoystickDiv'
+var ptzJoyStick = new JoyStick('ptzJoystickDiv');
+
+var prevX = (typeof prevX  === "undefined" ? 0 : prevX)
+var prevY = (typeof prevY  === "undefined" ? 0 : prevY)
+setInterval(function(){
+    var xx = ptzJoyStick.GetX();
+    var yy = ptzJoyStick.GetY();
+    var x = Math.round(ptzJoyStick.GetX() / 10) * pantiltSpeed / 100;
+    var y = Math.round(ptzJoyStick.GetY() / 10) * pantiltSpeed / 100;
+    if (x !== prevX || y !== prevY) {
+        if ( x === 0 && y === 0 ) {
+            var loc = "/control/stop";
+            run_action(loc);
+        } else {
+            //console.log("PTZspeed: " + pantiltSpeed + " xx: " + xx + " yy: " + yy + " x: " + x + " y: " + y);
+            var loc = "/control/move?pan=" + x + "&tilt=" + y;
+            run_action(loc);
+        }
+        prevX = x;
+        prevY = y;
+    }
+}, 50);
+
+var selected_camera = $('.camera-selector button').first().data('camera_id');
+$('.camera-selector button').first().addClass('selected');
+
+if ( $('.camera-selector button').length < 2 ) {
+    $('.camera-selector button').hide();
+} else {
+    $('.camera-selector button').show();
+}
+
+$('.camera-selector button').click(function() {
+    selected_camera = $(this).data('camera_id');
+    $('.camera-button.selected').removeClass('selected');
+    $(this).addClass('selected');
+    return false;
+});
+
+function run_action (action_url) {
+	$.ajax({
+		url: action_url,
+		data: {'camera': selected_camera},
+		type: 'GET'
+	})
+}
+
+function get_presets () {
+	$.ajax({
+		url: '/control/get_presets',
+		data: {'camera': selected_camera},
+		type: 'GET',
+		complete: function(data) {
+		    var html = "";
+		    if (editPresets) {
+		        var presets = [];
+    		    data.responseJSON.forEach(function(preset) {
+    		        presets.push(preset['num']);
+    		    });
+
+		        var numPresets = 20;
+		        var i;
+		        var presetSelectorOptions = '';
+		        for (i = 0; i < numPresets; i++) {
+		            if ( $.inArray( i.toString(), presets ) === -1 ) {
+		                presetSelectorOptions += '<option value="' + i + '">' + i + '</option>'
+		            }
+		        }
+                $('#addPresetSelector').html(presetSelectorOptions);
+		        $('#presetSelector').show();
+		    } else {
+		        $('#presetSelector').hide();
+		    }
+		    data.responseJSON.forEach(function(preset) {
+                if (editPresets) {
+                    var presetEditIcons = '<span class="set-preset" data-toggle="tooltip" title="Set" style="float:left; margin-left: 5px; height: 38px;"><i class="fas fa-pencil-alt"></i></span><span class="remove-preset" data-toggle="tooltip" title="Remove"  style="float:right; margin-right: 5px; height: 38px"><i class="fas fa-trash-alt"></i></span>';
+                    html += '<button type="button" class="preset_button call_preset" data-preset=' + preset['num'] + '>' + presetEditIcons + preset['name'] + '</button>';
+                } else {
+                    html += '<button type="button" class="preset_button call_preset" data-preset=' + preset['num'] + '>' + preset['name'] + '</button>';
+                }
+		    });
+		    $("#presets").html(html);
+		}
+	})
+}
+get_presets();
+
+function adjust_setting (action) {
+
+	switch (action) {
+
+		case 'flip':
+
+			switch (config.flip) {
+				case 0:
+					var loc = "/control/param.cgi?post_image_value&flip&1";
+					run_action(loc);
+					config.flip = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					var loc = "/control/param.cgi?post_image_value&flip&0";
+					run_action(loc);
+					config.flip = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+
+		case 'mirror':
+			switch (config.mirror) {
+				case 0:
+					var loc = "/control/param.cgi?post_image_value&mirror&1";
+					run_action(loc);
+					config.mirror = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					var loc = "/control/param.cgi?post_image_value&mirror&0";
+					run_action(loc);
+					config.mirror = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+
+		case 'invertcontrols':
+
+			switch (config.invertcontrols) {
+				case 0:
+					config.invertcontrols = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					config.invertcontrols = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+
+		case 'infinitypt':
+
+			switch (config.infinitypt) {
+				case 0:
+					config.infinitypt = 1;
+					$('#pt_infinity').show();
+					config.infinitypt = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					config.infinitypt = 0;
+					$('#pt_infinity').hide();
+					config.infinitypt = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+
+		case 'infinityzoom':
+
+			// console.log("Adjusting Infinity Zoom", config.infinityzoom);
+			switch (config.infinityzoom) {
+				case 0:
+					config.infinityzoom = 1;
+					$('#cam_zoom_infinity').show();
+					$('#cam_zoom_standard').hide();
+					config.infinityzoom = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					config.infinityzoom = 0;
+					$('#cam_zoom_infinity').hide();
+					$('#cam_zoom_standard').show();
+					config.infinityzoom = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+
+		case 'infinityfocus':
+			switch (config.infinityfocus) {
+				case 0:
+					config.infinityfocus = 1;
+					$('#cam_focus_infinity').show();
+					$('#cam_focus_standard').hide();
+					config.infinityfocus = 1;
+					save_config();
+					update_labels();
+					break;
+
+				case 1:
+					config.infinityfocus = 0;
+					$('#cam_focus_infinity').hide();
+					$('#cam_focus_standard').show();
+					config.infinityfocus = 0;
+					save_config();
+					update_labels();
+					break;
+			}
+			break;
+	}
+}
+
+function cam_PTZ (action) {
+	switch (action) {
+		case 'left':
+			if (config.invertcontrols == "1") {
+				var loc = "/control/move?pan=" + pantiltSpeed/panRange;
+			} else {
+				var loc = "/control/move?pan=-" + pantiltSpeed/panRange;
+			}
+			break;
+
+		case 'right':
+			if (config.invertcontrols == "1") {
+				var loc = "/control/move?pan=-" + pantiltSpeed/panRange;
+			} else {
+				var loc = "/control/move?pan=" + pantiltSpeed/panRange;
+			}
+			break;
+
+		case 'up':
+			if (config.invertcontrols == "1") {
+				var loc = "/control/move?tilt=-" + pantiltSpeed/tiltRange;
+			} else {
+				var loc = "/control/move?tilt=" + pantiltSpeed/tiltRange;
+			}
+			break;
+
+		case 'down':
+			if (config.invertcontrols == "1") {
+				var loc = "/control/move?tilt=" + pantiltSpeed/tiltRange;
+			} else {
+				var loc = "/control/move?tilt=-" + pantiltSpeed/tiltRange;
+			}
+			break;
+
+		case 'home':
+			var loc = "/control/home";
+			break;
+
+		case 'ptzstop':
+			var loc = "/control/stop";
+			break;
+
+        case 'zoomin':
+            var loc = "/control/move?zoom=" + zoomSpeed/zoomRange;
+            break;
+
+        case 'zoomout':
+            var loc = "/control/move?zoom=-" + zoomSpeed/zoomRange;
+            break;
+
+        case 'zoomstop':
+            var loc = "/control/stop";
+            break;
+
+        case 'focusin':
+            var loc = "/control/focus?speed=" + focusSpeed/focusRange;
+            break;
+
+        case 'focusout':
+            var loc = "/control/focus?speed=-" + focusSpeed/focusRange;
+            break;
+
+        case 'focusstop':
+            var loc = "/control/focusstop";
+            break;
+	}
+	run_action(loc);
+}
+
+function cam_preset (preset) {
+    var loc = "/control/gotoPreset?preset=" + preset;
+	run_action(loc);
+}
+
+
+function clear_active_preset () {
+	$('.preset_image').removeClass("active");
+}
+
+
+var slider = document.getElementById("pantiltSpeed");
+
+// Update the current slider value (each time you drag the slider handle)
+slider.oninput = function() {
+    pantiltSpeed = this.value;
+}
+
+
+/* ------------------------------------ Mouse Events & Clicks
+ */
+
+$('body').on('click', '.reload-presets', function(e) {
+	e.preventDefault();
+	get_presets();
+	return false;
+});
+
+$('body').on('click', '.adjust_setting', function(e) {
+	e.preventDefault();
+	var action = $(this).data('action');
+	adjust_setting(action);
+	return false;
+});
+
+$('body').on('change', 'select.change_setting', function(e) {
+	e.preventDefault();
+	var action = $(this).attr('id');
+	config[action] = $(this).val();
+	save_config();
+	return false;
+});
+
+$('body').on('click', '.call_preset', function(e) {
+	e.preventDefault();
+	var preset = $(this).data('preset');
+	cam_preset(preset);
+	clear_active_preset();
+	$(this).addClass("active");
+	return false;
+});
+
+$('body').on('mousedown', '.adjust_pantilt', function(e) {
+	e.preventDefault();
+	var action = $(this).data('action');
+	cam_PTZ(action);
+	clear_active_preset();
+	return false;
+});
+
+$('body').on('mouseup', '.adjust_pantilt', function(e) {
+	e.preventDefault();
+	if ( $( this ).hasClass('pantilt-home') ) { return false };
+	cam_PTZ('ptzstop');
+	return false;
+});
+
+$('body').on('mousedown', '.adjust_zoom', function(e) {
+	e.preventDefault();
+	var action = $(this).data('action');
+	cam_PTZ(action);
+	clear_active_preset();
+	return false;
+});
+$('body').on('mouseup', '.adjust_zoom', function(e) {
+	e.preventDefault();
+	cam_PTZ('zoomstop');
+	return false;
+});
+
+$('body').on('mousedown', '.adjust_focus', function(e) {
+	e.preventDefault();
+	var action = $(this).data('action');
+	cam_PTZ(action);
+	clear_active_preset();
+	return false;
+});
+$('body').on('mouseup', '.adjust_focus', function(e) {
+	e.preventDefault();
+	cam_PTZ('focusstop');
+	return false;
+});
+
+// visual only toggle rocker buttons
+$('body').on('mousedown', '.toggle-up', function(e) {
+	e.preventDefault();
+	$(this).parents('.rocker').addClass('rocker-up');
+});
+$('body').on('mouseup', '.toggle-up', function(e) {
+	e.preventDefault();
+	$(this).parents('.rocker').removeClass('rocker-up');
+});
+
+$('body').on('mousedown', '.toggle-down', function(e) {
+	e.preventDefault();
+	$(this).parents('.rocker').addClass('rocker-down');
+});
+$('body').on('mouseup', '.toggle-down', function(e) {
+	e.preventDefault();
+	$(this).parents('.rocker').removeClass('rocker-down');
+});
+
+
+/* ------------------------------------ Keyboard Events
+ */
+
+// UP
+Mousetrap.bind('up', function(e) {
+	cam_PTZ('up');
+	$('.pantilt-up').addClass('active');
+	return false;
+}, 'keydown');
+
+Mousetrap.bind('up', function(e) {
+	cam_PTZ('ptzstop');
+	$('.pantilt-up').removeClass('active');
+	return false;
+}, 'keyup');
+
+// DOWN
+Mousetrap.bind('down', function(e) {
+	cam_PTZ('down');
+	$('.pantilt-down').addClass('active');
+	return false;
+}, 'keydown');
+
+Mousetrap.bind('down', function(e) {
+	cam_PTZ('ptzstop');
+	$('.pantilt-down').removeClass('active');
+	return false;
+}, 'keyup');
+
+// LEFT
+Mousetrap.bind('left', function(e) {
+	cam_PTZ('left');
+	$('.pantilt-left').addClass('active');
+	return false;
+}, 'keydown');
+
+Mousetrap.bind('left', function(e) {
+	cam_PTZ('ptzstop');
+	$('.pantilt-left').removeClass('active');
+	return false;
+}, 'keyup');
+
+// RIGHT
+Mousetrap.bind('right', function(e) {
+	cam_PTZ('right');
+	$('.pantilt-right').addClass('active');
+	return false;
+}, 'keydown');
+
+Mousetrap.bind('right', function(e) {
+	cam_PTZ('ptzstop');
+	$('.pantilt-right').removeClass('active');
+	return false;
+}, 'keyup');
+
+$('body').on('click', '.edit-presets', function(e) {
+	e.preventDefault();
+	if (editPresets) {
+        $(this).children('i').addClass('fa-cog');
+        $(this).children('i').removeClass('fa-check');
+        $(this).attr('title', 'Edit Presets');
+        editPresets = false;
+	} else {
+        $(this).children('i').removeClass('fa-cog');
+        $(this).children('i').addClass('fa-check');
+        $(this).attr('title', 'End Edit');
+        editPresets = true;
+	}
+	get_presets();
+	return false;
+});
+
+$('body').on('click', '.remove-preset', function(e) {
+	e.preventDefault();
+	var preset = $(this).parent().data('preset');
+    //console.log('remove = ' + preset);
+	$.ajax({
+		url: '/control/remove_preset',
+		data: {'camera': selected_camera,
+		       'preset': preset,
+		      },
+		type: 'GET',
+		complete: function(data) {
+		    get_presets();
+		}
+	})
+	return false;
+});
+
+$('body').on('click', '.add-preset', function(e) {
+	e.preventDefault();
+	var preset = $('#addPresetSelector').val();
+    //console.log('set = ' + preset);
+	$.ajax({
+		url: '/control/set_preset',
+		data: {'camera': selected_camera,
+		       'preset': preset,
+		      },
+		type: 'GET',
+		complete: function(data) {
+		    get_presets();
+		}
+	})
+	return false;
+});
+
+$('body').on('click', '.set-preset', function(e) {
+	e.preventDefault();
+	var preset = $(this).parent().data('preset');
+    //console.log('set = ' + preset);
+	$.ajax({
+		url: '/control/set_preset',
+		data: {'camera': selected_camera,
+		       'preset': preset,
+		      },
+		type: 'GET',
+		complete: function(data) {
+		    get_presets();
+		}
+	})
+	return false;
+});
+
+
+</script>
+</%def>
