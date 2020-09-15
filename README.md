@@ -1,6 +1,7 @@
 # PTZController
 
 PTZController is a python3-based webserver application for controlling ONVIF-capable PTZ cameras.
+It includes a webpage for controlling velocity, direction, and presets. There is also a webpage browser dock page for OBS Studio for quick access to Presets.
 
 ## Installation
 * Download or Clone this repository.
