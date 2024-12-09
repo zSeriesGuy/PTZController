@@ -1,8 +1,0 @@
-pip-tools
-onvif-zeep
-cherrypy
-Mako
-pywin32; sys_platform == "win32"
-tzlocal
-#python-daemon
-#infi.systray; sys_platform == "win32"

@@ -38,7 +38,7 @@ def main():
 
     try:
         locale.setlocale(locale.LC_ALL, "")
-        PTZController.SYS_LANGUAGE, PTZController.SYS_ENCODING = locale.getdefaultlocale()
+        PTZController.SYS_LANGUAGE, PTZController.SYS_ENCODING = locale.getlocale()
     except (locale.Error, IOError):
         pass
 
