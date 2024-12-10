@@ -31,6 +31,7 @@ There are multiple sections:
 
 ##### Webserver
 * server_port: What port do you want the server to listen on. Defaults to 8080.
+* remote: (yes or no) With "no", this server listens only on localhost. With "yes", this server is accessible remotely.
 
 ##### Any other sections not named General or Webserver are considered to be cameras.
 * host: The IP address or hostname of the PTZ camera.
