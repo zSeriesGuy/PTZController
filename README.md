@@ -22,6 +22,7 @@ It includes a webpage for controlling velocity, direction, and presets. There is
 
 ## Configuration
 The configuration parameters are stored in `PTZController.conf`.
+An example is provided in `example.PTZController.conf`. Copy it to `PTZController.conf` to get started.
 Use your favorite editor to edit the configuration.
 
 There are multiple sections:
