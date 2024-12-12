@@ -8,15 +8,15 @@ It includes a webpage for controlling velocity, direction, and presets. There is
 * Open a command or terminal window.
 * CD to where you unzipped or cloned the repository.
 * Create a Virtual Environment:
-    * Type: `python -m venv .\`
+    * Type: `python -m venv .\venv`
 * Activate the Virtual Environment:
-    * On Windows, type: `.\scripts\activate`
-    * On Linux, type: `source ./bin/activate`
+    * On Windows, type: `.\venv\scripts\activate`
+    * On Linux, type: `source ./venv/bin/activate`
 * Type: `python -m pip install --upgrade pip setuptools`
 * Type: `pip install -r requirements.txt`
 * Start the server: 
-    * On Windows, type: `.\scripts\python3 start.py`
-    * On Linux, type: `./bin/python start.py`
+    * On Windows, type: `.\venv\scripts\python3 start.py`
+    * On Linux, type: `./venv/bin/python start.py`
 * PTZController will be loaded in your browser and listening on <http://localhost:8080>
 > **NOTE:** You can use `Start PTZController.bat` to start the server on Windows.
 
