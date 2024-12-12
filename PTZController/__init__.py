@@ -162,6 +162,9 @@ class PTZController(object):
     def shutdown(self, restart=False, update=False, checkout=False):
         print("Stopping PTZController...")
         cherrypy.engine.exit()
+        for camera in self._cameras:
+            if camera.isconnected and camera.power_off:
+                camera.powerOff()
         print('WebServices Terminated')
 
     def initialize_cameras(self):

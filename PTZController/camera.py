@@ -2,6 +2,7 @@ from threading import Thread
 
 from onvif import ONVIFCamera, ONVIFError
 from datetime import timedelta
+import socket
 
 ## MONKEY PATCH
 #def zeep_pythonvalue(self, xmlvalue):
@@ -17,19 +18,32 @@ from . import logger
 
 class Camera(object):
     def __init__(self, options):
+        self.__isconnected = False
         self.id = options['id']
         self.name = options['name']
-        self.host = options['host']
-        self.port = int(options['port'])
-        self.__userid = options['userid']
-        self.__password = options['password']
-        self.__isconnected = False
-        th = Thread(target=self.__initialize, name=f"CameraInit-{self.name}")
-        th.start()
+        try:
+            # Required Options
+            self.host = options['host']
+            self.port = int(options['port'])
+            self.__userid = options['userid']
+            self.__password = options['password']
+
+            # Optional options
+            self.port_visca = int(options['port_visca']) if 'port_visca' in options else None
+            self.power_on = True if options.get('power_on') in ('yes', 'true', '0') else False
+            self.power_off = True if options.get('power_off') in ('yes', 'true', '0') else False
+
+            th = Thread(target=self.__initialize, name=f"CameraInit-{self.name}")
+            th.start()
+        except KeyError as e:
+            logger.info(f'Initialization for Camera {self.name} failed. Keyword {e.args[0]} is required.')
+
 
     def __initialize(self):
         logger.info(f'Initializing Camera {self.name} at {(self.host,self.port)}')
         try:
+            if self.power_on:
+                self.powerON()
             self.__cam = ONVIFCamera(self.host, self.port, self.__userid, self.__password)
             self.__media_service = self.__cam.create_media_service()
             self.__ptz_service = self.__cam.create_ptz_service()
@@ -37,8 +51,8 @@ class Camera(object):
             self.__profile = self.__media_service.GetProfiles()[0]
             self.__video_source = self.__get_video_sources()[0]
             self.__ptz_status = self.__ptz_service.GetStatus({'ProfileToken': self.__profile.token})
-            self.__isconnected = True
             self.capabilities = self.__get_service_capabilities()
+            self.__isconnected = True
             logger.info(f'Successfully Initialized Camera {self.name} at {(self.host, self.port)}')
         except Exception as e:
             self.__isconnected = False
@@ -56,7 +70,28 @@ class Camera(object):
     def configOptions(self):
         return self.__get_ptz_conf_opts()
 
+    def powerON(self):
+        logger.info(f'Camera {self.name}: Powering On')
+        if self.port_visca is not None:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+            s.connect((self.host, self.port_visca))
+            data = bytes.fromhex('8101040002FF')
+            s.send(data)
+            s.close()
+        else:
+            logger.info(f'Camera {self.name}: Cannot Power on. No VISCA port specified in configuration.')
 
+
+    def powerOff(self):
+        logger.info(f'Camera {self.name}: Powering Off')
+        if self.port_visca is not None:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+            s.connect((self.host, self.port_visca))
+            data = bytes.fromhex('8101040003FF')
+            s.send(data)
+            s.close()
+        else:
+            logger.info(f'Camera {self.name}: Cannot Power off. No VISCA port specified in configuration.')
 
     def get_stream_uri(self, protocol='UDP', stream='RTP-Unicast'):
         """
