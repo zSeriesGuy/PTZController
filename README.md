@@ -26,6 +26,9 @@ An example is provided in `example.PTZController.conf`. Copy it to `PTZControlle
 Use your favorite editor to edit the configuration.
 
 There are multiple sections:
+##### DEFAULT
+You can specify options in the DEFAULT section that apply to all sections such as power_on and power_off.
+
 ##### General
 * log_dir: Location to store a log. None means no logging.
 * launch_browser: Whether or not to launch a browser window when the server starts.
@@ -39,6 +42,9 @@ There are multiple sections:
 * port: The port that ONVIF listens on in the camera.
 * userid and password: The credentials for accessing ONVIF on the camera.
 * Name (optional): The name to use for the camera. If no name is specified, the section name is used as the camera name. Note that only the first 12 characters are used for the name. This name is what is listed in the Camera Selector.
+* port_visca: The port that VISCA listens on. This is required for power on/off support.
+* power_on: (yes or no) To power on the camera during initialization
+* power_off: (yes or no) To power off the camera during shutdown.
 
 ## Usage
 ### Webpage Usage
