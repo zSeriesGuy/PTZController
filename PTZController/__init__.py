@@ -67,7 +67,7 @@ class PTZController(object):
         }
 
         options['server.socket_port'] = self.CONFIG.getint('Webserver', 'server_port', fallback=8080)
-        if self.CONFIG.get('Webserver', 'remote', fallback='no') == 'yes':
+        if self.CONFIG.getboolean('Webserver', 'remote', fallback=False):
             options['server.socket_host'] = '0.0.0.0'
 
         cherrypy.config.update(options)
